@@ -8,7 +8,11 @@
 #
 
 library(shiny)
+devtools::install_github("jtlandis/dr4pl")
 library(dr4pl)
+library(ggplot2)
+library(dplyr)
+library(magrittr)
 # Define UI for application that draws a histogram
 ui <- fluidPage(
   tags$head(
