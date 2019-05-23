@@ -12,196 +12,248 @@ library(dr4pl)
 # Define UI for application that draws a histogram
 ui <- fluidPage(
   tags$head(
-  tags$style(HTML(
-    ".sticky{
-        position: sticky;
-        top: 0;
-    }
-    "
-  ))
-  
-),
-  
-   
-   # Application title
-   titlePanel("dr4pl"),
-   
-   # Sidebar with a slider input for number of bins 
-   navlistPanel(
-     tabPanel("Data Input",
-              tabsetPanel(
-                tabPanel("csv",
-                         inputPanel(fileInput(inputId = "file.csv",
-                                              label = "Choose csv file",
-                                              accept = c(".csv")),
-                                    checkboxInput("header.csv", "Header", TRUE),
-                                    actionButton("submit.csv", "Submit"))),
-                tabPanel("xlsx",
-                         inputPanel(fileInput(inputId = "file.xlsx",
-                                              label = "Choose xlsx file",
-                                              accept = c(".xls",".xlsx")),
-                                    textInput("sheet.xlsx", label = "Specify Sheet",value = NULL),
-                                    checkboxInput("colnames.xlsx", "Column Names", TRUE),
-                                    actionButton("submit.xlsx", "Submit"))),
-                tabPanel("tsv",
-                         inputPanel(fileInput(inputId = "file.tsv",
-                                              label = "Choose tsv file",
-                                              accept = c(".tsv")),
-                                    checkboxInput("header.tsv", "Header", TRUE)),
-                         actionButton("submit.tsv", "Submit")),
-                tabPanel("table",
-                         inputPanel(fileInput(inputId = "file.table",
-                                              label = "Choose a file"),
-                                    checkboxInput("header.table", "Header", FALSE),
-                                    textInput("sep.table", "Sep", ""),
-                                    selectInput("dec.table", label = "Decimal character", choices = c(".",","),selected = "."),
-                                    numericInput("skip.table", label = "Skip Number of Rows",value = 0),
-                                    actionButton("submit.table", "Submit")))
-                
-              ),
-              hr(),
-              div(style = 'overflow-x: scroll',
-                  dataTableOutput(outputId = "dr4pl.submit.data"))),
-     tabPanel("Regression",
-              fluidRow(div(style = 'overflow-x: scroll',
-                           dataTableOutput(outputId = "dr4pl.submit.data2"))),
-              hr(),
-              fluidRow(inputPanel(column(12,
-                                         uiOutput("Dose.selection"),
-                                         uiOutput("Response.selection")),
-                                  column(12,
-                                         radioButtons("dr4pl.trend",
-                                                      "Curve Trend",
-                                                      choices = c("auto",
-                                                                  "increasing",
-                                                                  "decreasing"),
-                                                      selected = "auto"),
-                                         radioButtons("dr4pl.method.init",
-                                                      "Initialization Method",
-                                                      choices = c("Mead", "logistic"),
-                                                      selected = "Mead")),
-                                  column(12,
-                                         radioButtons("dr4pl.method.robust",
-                                                      "Robust Estimation Method",
-                                                      choices = c("squared",
-                                                                  "absolute",
-                                                                  "Huber",
-                                                                  "Tukey"),
-                                                      selected = "squared"),
-                                         radioButtons("dr4pl.method.optim",
-                                                      "Optimization Method",
-                                                      choices = c("Nelder-Mead","BFGS",
-                                                                  "CG","L-BFGS-B","SANN"),
-                                                      selected = "Nelder-Mead")),
-                                  column(12,
-                                         checkboxInput("dr4pl.use.Hessian",
-                                                       "Use Hessian Matrix",
-                                                       value = TRUE),
-                                         checkboxInput("use.init.param",
-                                                       "Use Initialization Parameters",
-                                                       value = F),
-                                         checkboxInput("use.upper.lim",
-                                                       "Impose Upper Limit",
-                                                       value = F),
-                                         checkboxInput("use.lower.lim",
-                                                       "Impose Lower Limit",
-                                                       value = F)),
-                                  column(12,
-                                         h5("Initialization Parameters"),
-                                         textInput(inputId = "init.upperBound",
+    tags$style(HTML(
+      ".sticky{
+      position: sticky;
+      top: 0;
+      }
+      "
+    ))
+    
+    ),
+  titlePanel("dr4pl Shiny Module"),
+  fluidRow(column(2, class="well sticky",
+                  tags$ul(class="nav nav-pills nav-stacked shiny-tab-input",
+                          tags$li(class="active",tags$a(href="#tab-5482-1",
+                                                        'data-toggle'="tab",
+                                                        'data-value'="Data Input",
+                                                        "Data Input")
+                          ),
+                          tags$li(tags$a(href="#tab-5482-2",
+                                         'data-toggle'="tab",
+                                         'data-value'="Subsetting",
+                                         "Subsetting")
+                          ),
+                          tags$li(tags$a(href="#tab-5482-3",
+                                         'data-toggle'="tab",
+                                         'data-value'="Regression",
+                                         "Regression")
+                          )
+                  )
+  ),
+  column(10,
+         div(class="tab-content", 'data-tabsetid'="5482",
+             div(class="tab-pane active",
+                 'data-value'="Data Input",
+                 id="tab-5482-1",
+                 tabsetPanel(
+                   tabPanel("csv",
+                            inputPanel(fileInput(inputId = "file.csv",
+                                                 label = "Choose csv file",
+                                                 accept = c(".csv")),
+                                       checkboxInput("header.csv", "Header", TRUE),
+                                       actionButton("submit.csv", "Submit")
+                            )
+                   ),
+                   tabPanel("xlsx",
+                            inputPanel(fileInput(inputId = "file.xlsx",
+                                                 label = "Choose xlsx file",
+                                                 accept = c(".xls",".xlsx")),
+                                       textInput("sheet.xlsx", label = "Specify Sheet",value = NULL),
+                                       checkboxInput("colnames.xlsx", "Column Names", TRUE),
+                                       actionButton("submit.xlsx", "Submit")
+                            )
+                   ),
+                   tabPanel("tsv",
+                            inputPanel(fileInput(inputId = "file.tsv",
+                                                 label = "Choose tsv file",
+                                                 accept = c(".tsv")),
+                                       checkboxInput("header.tsv", "Header", TRUE)),
+                            actionButton("submit.tsv", "Submit")),
+                   tabPanel("table",
+                            inputPanel(fileInput(inputId = "file.table",
+                                                 label = "Choose a file"),
+                                       checkboxInput("header.table", "Header", FALSE),
+                                       textInput("sep.table", "Sep", ""),
+                                       selectInput("dec.table", label = "Decimal character", choices = c(".",","),selected = "."),
+                                       numericInput("skip.table", label = "Skip Number of Rows",value = 0),
+                                       actionButton("submit.table", "Submit")))
+                   
+                 ),
+                 hr(),
+                 div(style = 'overflow-x: scroll',
+                     dataTableOutput(outputId = "dr4pl.submit.data")
+                 )
+             ),
+             div(class="tab-pane",
+                 'data-value'="Subsetting",
+                 id="tab-5482-2",
+                 fluidRow(inputPanel(column(12,
+                                            uiOutput("p.col.select")),
+                                     column(12,
+                                            uiOutput("p.facto.filt")),
+                                     column(12,
+                                            actionButton(inputId = "apply_sub", "Apply Subset"),
+                                            actionButton(inputId = "apply_reset", "Reset Subset"))),
+                          hr(),
+                          h3("Subset Preview"),
+                          dataTableOutput(outputId = "dat_preview"))
+             ),
+             div(class="tab-pane",
+                 'data-value'="Regression",
+                 id="tab-5482-3",
+                 fluidRow(inputPanel(column(12,
+                                            uiOutput("Dose.selection"),
+                                            uiOutput("Response.selection")),
+                                     column(12,
+                                            radioButtons("dr4pl.trend",
+                                                         "Curve Trend",
+                                                         choices = c("auto",
+                                                                     "increasing",
+                                                                     "decreasing"),
+                                                         selected = "auto"),
+                                            radioButtons("dr4pl.method.init",
+                                                         "Initialization Method",
+                                                         choices = c("Mead", "logistic"),
+                                                         selected = "Mead")),
+                                     column(12,
+                                            radioButtons("dr4pl.method.robust",
+                                                         "Robust Estimation Method",
+                                                         choices = c("squared",
+                                                                     "absolute",
+                                                                     "Huber",
+                                                                     "Tukey"),
+                                                         selected = "squared"),
+                                            radioButtons("dr4pl.method.optim",
+                                                         "Optimization Method",
+                                                         choices = c("Nelder-Mead","BFGS",
+                                                                     "CG","L-BFGS-B","SANN"),
+                                                         selected = "Nelder-Mead")),
+                                     column(12,
+                                            checkboxInput("dr4pl.use.Hessian",
+                                                          "Use Hessian Matrix",
+                                                          value = TRUE),
+                                            checkboxInput("use.init.param",
+                                                          "Use Initialization Parameters",
+                                                          value = F),
+                                            checkboxInput("use.upper.lim",
+                                                          "Impose Upper Limit",
+                                                          value = F),
+                                            checkboxInput("use.lower.lim",
+                                                          "Impose Lower Limit",
+                                                          value = F)),
+                                     column(12,
+                                            h5("Initialization Parameters"),
+                                            textInput(inputId = "init.upperBound",
                                                       label = "Upper Bound",
                                                       value =  NULL),
-                                         textInput(inputId = "init.lowerBound",
+                                            textInput(inputId = "init.lowerBound",
                                                       label = "Lower Bound",
                                                       value = NULL),
-                                         textInput(inputId = "init.IC50",
+                                            textInput(inputId = "init.IC50",
                                                       label = "IC50",
                                                       value = NULL),
-                                         textInput("init.slope",
+                                            textInput("init.slope",
                                                       label = "Slope",
                                                       value = NULL)),
-                                  column(12,
-                                         h5("Upper Limit Restraints"),
-                                         textInput(inputId = "ubul",
+                                     column(12,
+                                            h5("Upper Limit Restraints"),
+                                            textInput(inputId = "ubul",
                                                       label = "Upper Bound",
                                                       value =  NULL),
-                                         textInput(inputId = "lbul",
+                                            textInput(inputId = "lbul",
                                                       label = "Lower Bound",
                                                       value = NULL),
-                                         textInput(inputId = "icul",
+                                            textInput(inputId = "icul",
                                                       label = "IC50",
                                                       value = NULL),
-                                         textInput("slul",
+                                            textInput("slul",
                                                       label = "Slope",
                                                       value = NULL)),
-                                  column(12,
-                                         h5("Lower Limit Restraints"),
-                                         textInput(inputId = "ubll",
+                                     column(12,
+                                            h5("Lower Limit Restraints"),
+                                            textInput(inputId = "ubll",
                                                       label = "Upper Bound",
                                                       value =  NULL),
-                                         textInput(inputId = "lbll",
+                                            textInput(inputId = "lbll",
                                                       label = "Lower Bound",
                                                       value = NULL),
-                                         textInput(inputId = "icll",
+                                            textInput(inputId = "icll",
                                                       label = "IC50",
                                                       value = NULL),
-                                         textInput("slll",
+                                            textInput("slll",
                                                       label = "Slope",
                                                       value = NULL)))
-
-
-                              ),
-              hr(),
-              plotOutput(outputId = "dr4pl.plot"),
-              hr(),
-              fluidRow(column(6,
-                              inputPanel(column(12,
-                                                textInput(inputId = "plot.title",
-                                                          "Plot Title",
-                                                          "Dose-Response Plot"),
-                                                uiOutput(outputId = "plot.x.text"),
-                                                uiOutput(outputId = "plot.y.text")),
-                                         column(12,
-                                                checkboxInput(inputId = "ind.outlier", "Report Outliers"),
-                                                checkboxInput(inputId = "inc.curve", "Show Curve", value = TRUE)),
-                                         column(12,
-                                                uiOutput(outputId = "dl.filename.opt"),
-                                                downloadButton(outputId = "get.dr4pl.plot")))),
-                       
-                       column(6,
-                              verbatimTextOutput(outputId = "dr4pl.summary")))
-              )
-   )
-   
+                          
+                          
+                 ),
+                 hr(),
+                 plotOutput(outputId = "dr4pl.plot"),
+                 hr(),
+                 fluidRow(column(6,
+                                 inputPanel(column(12,
+                                                   textInput(inputId = "plot.title",
+                                                             "Plot Title",
+                                                             "Dose-Response Plot"),
+                                                   uiOutput(outputId = "plot.x.text"),
+                                                   uiOutput(outputId = "plot.y.text")),
+                                            column(12,
+                                                   checkboxInput(inputId = "ind.outlier", "Report Outliers"),
+                                                   checkboxInput(inputId = "inc.curve", "Show Curve", value = TRUE)),
+                                            column(12,
+                                                   uiOutput(outputId = "dl.filename.opt"),
+                                                   downloadButton(outputId = "get.dr4pl.plot")))),
+                          
+                          column(6,
+                                 verbatimTextOutput(outputId = "dr4pl.summary")))
+             )  
+         )
+         
+  )
+)
+  
 )
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
-   values <- reactiveValues(submit.csv =0, submit.xlsx = 0, submit.tsv = 0, submit.table = 0)
+   values <- reactiveValues(submit.csv =0, submit.xlsx = 0, submit.tsv = 0, submit.table = 0, submit.preview = 0)
    
    observeEvent(input$submit.csv, {
      values$submit.csv <- 1
      values$submit.xlsx <- 0
      values$submit.tsv <- 0
      values$submit.table <- 0
+     values$submit.preview <- 0
    })
    observeEvent(input$submit.xlsx, {
      values$submit.csv <- 0
      values$submit.xlsx <- 1
      values$submit.tsv <- 0
      values$submit.table <- 0
+     values$submit.preview <- 0
    })
    observeEvent(input$submit.tsv, {
      values$submit.csv <- 0
      values$submit.xlsx <- 0
      values$submit.tsv <- 1
      values$submit.table <- 0
+     values$submit.preview <- 0
    })
    observeEvent(input$submit.table, {
      values$submit.csv <- 0
      values$submit.xlsx <- 0
      values$submit.tsv <- 0
      values$submit.table <- 1
+     values$submit.preview <- 0
+   })
+   subset_store <- reactiveValues()
+   observeEvent(input$apply_sub, {
+     #values$submit.preview <- 1
+     subset_store$data <- pData()
+   })
+   observeEvent(input$apply_reset, {
+     #values$submit.preview <- 0
+     subset_store$data <- inputData()
    })
    inputData <- reactive({
      if(input$submit.csv==0&&input$submit.xlsx==0&&input$submit.tsv==0&&input$submit.table==0){
@@ -224,6 +276,7 @@ server <- function(input, output) {
                             dec = input$dec.table,
                             skip = input$skip.table)
        }
+       subset_store$data <- data
        return(data)
     })
    })
@@ -242,11 +295,39 @@ server <- function(input, output) {
      }
      name
    })
-   output$Dose.selection <- renderUI({
+   output$p.col.select <- renderUI({
      if(is.null(inputData())){
        return(NULL)
      } else {
        c.names <- colnames(inputData())
+       selectInput("p.selected", "Select Column to Subset upon",choices = c.names, selected = c.names[1])
+     }
+   })
+   output$p.facto.filt <- renderUI({
+     if(is.null(inputData())){
+       return(NULL)
+     } else {
+       uni.c <- unique(inputData()[,input$p.selected])
+       checkboxGroupInput(inputId = "p.facto.selected", "Select Factors to Include", choices = uni.c, selected = uni.c, inline = T)
+     }
+   })
+   pData <- reactive({
+     if(is.null(inputData())){
+       return(NULL)
+     } 
+       pfs <- input$p.facto.selected
+       data <- subset_store$data  %>% filter(eval(parse(text = paste(sep ="", input$p.selected, " %in% pfs"))))
+     
+     return(data)
+   })
+   output$dat_preview <- renderDataTable({
+     pData()
+   })
+   output$Dose.selection <- renderUI({
+     if(is.null(inputData())){
+       return(NULL)
+     } else {
+       c.names <- colnames(subset_store$data)
        selectInput("dr4pl.Dose", "Dose Column",choices = c.names)
      }
    })
@@ -254,7 +335,7 @@ server <- function(input, output) {
      if(is.null(inputData())){
        return(NULL)
      } else {
-       c.names <- colnames(inputData())
+       c.names <- colnames(subset_store$data)
        selectInput("dr4pl.Response", "Response Column",choices = c.names)
      }
    })
@@ -264,14 +345,8 @@ server <- function(input, output) {
      }
      inputData()
    })
-   output$dr4pl.submit.data2 <- renderDataTable({
-     if(is.null(inputData())){
-       return()
-     }
-     inputData()
-   })
    dr4pl_reactive <- reactive({
-     data <- inputData()
+     data <- subset_store$data
      if(is.null(input$dr4pl.Dose)|is.null(input$dr4pl.Response)){
        return(NULL)
      } else {
@@ -365,7 +440,8 @@ server <- function(input, output) {
             text.y = input$text.y,
             indices.outlier = indices.outlier,
             type.curve = type.curve,
-            color.vec = "blue") + ggplot2::guides(color = F)
+            color.vec = "blue",
+            labels = "dr4plObj") + ggplot2::guides(color = F)
      }
    })
    output$dr4pl.plot <- renderPlot({
