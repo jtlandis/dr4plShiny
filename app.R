@@ -8,12 +8,16 @@
 #
 
 library(shiny)
-devtools::install_github("jtlandis/dr4pl")
 library(dr4pl)
 library(ggplot2)
 library(dplyr)
 library(magrittr)
+library(stringr)
 # Define UI for application that draws a histogram
+parseFriendly <- function(x) {
+  x <- ifelse(str_detect(string = x, pattern = " "), paste(sep = "", "`",x,"`"), x )
+}
+
 ui <- fluidPage(
   tags$head(
     tags$style(HTML(
@@ -263,7 +267,7 @@ server <- function(input, output) {
      if(input$submit.csv==0&&input$submit.xlsx==0&&input$submit.tsv==0&&input$submit.table==0){
        return(NULL)
      }
-     isolate({
+    # isolate({
        if(values$submit.csv){
          data <- read.csv(file = input$file.csv$datapath,
                           header = input$header.csv)
@@ -282,7 +286,7 @@ server <- function(input, output) {
        }
        subset_store$data <- data
        return(data)
-    })
+   # })
    })
    dataName <- reactive({
      if(values$submit.csv){
@@ -310,8 +314,10 @@ server <- function(input, output) {
    output$p.facto.filt <- renderUI({
      if(is.null(inputData())){
        return(NULL)
-     } else {
-       uni.c <- unique(inputData()[,input$p.selected])
+     } else if(is.null(input$p.selected)){
+       return(NULL)
+     } else {   
+       uni.c <- eval(parse(text = paste(sep = "","unique(inputData()$",parseFriendly(input$p.selected),")")))
        checkboxGroupInput(inputId = "p.facto.selected", "Select Factors to Include", choices = uni.c, selected = uni.c, inline = T)
      }
    })
