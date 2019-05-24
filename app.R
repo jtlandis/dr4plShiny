@@ -67,7 +67,7 @@ ui <- fluidPage(
                             inputPanel(fileInput(inputId = "file.xlsx",
                                                  label = "Choose xlsx file",
                                                  accept = c(".xls",".xlsx")),
-                                       textInput("sheet.xlsx", label = "Specify Sheet",value = NULL),
+                                       uiOutput("excel_sheet"),
                                        checkboxInput("colnames.xlsx", "Column Names", TRUE),
                                        actionButton("submit.xlsx", "Submit")
                             )
@@ -262,6 +262,13 @@ server <- function(input, output) {
    observeEvent(input$apply_reset, {
      #values$submit.preview <- 0
      subset_store$data <- inputData()
+   })
+   output$excel_sheet <- renderUI({
+     if(is.null(input$file.xlsx$datapath)){
+       return(NULL)
+     }
+     o <- readxl::excel_sheets(path = input$file.xlsx$datapath)
+     selectInput("sheet.xlsx", label = "Specify Sheet", choices = o, selected = o[1])
    })
    inputData <- reactive({
      if(input$submit.csv==0&&input$submit.xlsx==0&&input$submit.tsv==0&&input$submit.table==0){
