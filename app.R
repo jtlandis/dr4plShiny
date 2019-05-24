@@ -209,8 +209,15 @@ ui <- fluidPage(
                                                    checkboxInput(inputId = "ind.outlier", "Report Outliers"),
                                                    checkboxInput(inputId = "inc.curve", "Show Curve", value = TRUE)),
                                             column(12,
+                                                   checkboxInput("IC50_include", "Include IC50", value = TRUE),
+                                                   numericInput(inputId = "IC50_x", "IC50 x-axis", value = 100),
+                                                   uiOutput(outputId = "IC50_yui"),
+                                                   numericInput("text.size",label = "Label Size", value = 8)),
+                                            column(12,
                                                    uiOutput(outputId = "dl.filename.opt"),
-                                                   downloadButton(outputId = "get.dr4pl.plot")))),
+                                                   downloadButton(outputId = "get.dr4pl.plot"),
+                                                   numericInput("width", "Plot Width (in)", value = 8),
+                                                   numericInput("height", "Plot Height (in)", value = 6)))),
                           
                           column(6,
                                  verbatimTextOutput(outputId = "dr4pl.summary")))
@@ -274,7 +281,7 @@ server <- function(input, output) {
      if(input$submit.csv==0&&input$submit.xlsx==0&&input$submit.tsv==0&&input$submit.table==0){
        return(NULL)
      }
-    # isolate({
+    isolate({
        if(values$submit.csv){
          data <- read.csv(file = input$file.csv$datapath,
                           header = input$header.csv)
@@ -293,7 +300,7 @@ server <- function(input, output) {
        }
        subset_store$data <- data
        return(data)
-   # })
+    })
    })
    dataName <- reactive({
      if(values$submit.csv){
@@ -451,15 +458,22 @@ server <- function(input, output) {
        }
        
        
-       plot(dr4pl_reactive(),
-            text.title = input$plot.title,
-            text.x = input$text.x,
-            text.y = input$text.y,
-            indices.outlier = indices.outlier,
-            type.curve = type.curve,
-            color.vec = "blue",
-            labels = "dr4plObj") + ggplot2::guides(color = F)
+       p <- plot(dr4pl_reactive(),
+                 text.title = input$plot.title,
+                 text.x = input$text.x,
+                 text.y = input$text.y,
+                 indices.outlier = indices.outlier,
+                 type.curve = type.curve,
+                 color.vec = "blue",
+                 labels = "dr4plObj") + ggplot2::guides(color = F)
+       if(input$IC50_include){
+         p <- p + geom_text(aes(label = paste("IC50:", round(dr4pl_reactive()$parameters[2],1)), x = input$IC50_x, y = input$IC50_y), size = input$text.size)
+       }
+       p
      }
+   })
+   output$IC50_yui <- renderUI({
+     numericInput(inputId = "IC50_y", "IC50 y-axis", value = (max(dr4pl_reactive()$data$Response)-min(dr4pl_reactive()$data$Response))/2)
    })
    output$dr4pl.plot <- renderPlot({
      dr4pl_plot()
@@ -480,7 +494,7 @@ server <- function(input, output) {
    output$get.dr4pl.plot <- downloadHandler(filename = function() {paste(sep = "",input$dl.filename,".png")},
                                             content = function(file) {
                                               device <- function(..., width, height) {
-                                                grDevices::png(..., width = width, height = height,
+                                                grDevices::png(..., width = input$width, height = input$height,
                                                                res = 300, units = "in")
                                               }
                                               ggplot2::ggsave(file , plot = dr4pl_plot(), device = device)
