@@ -340,7 +340,7 @@ server <- function(input, output) {
        return(NULL)
      } 
        pfs <- input$p.facto.selected
-       data <- subset_store$data  %>% filter(eval(parse(text = paste(sep ="", input$p.selected, " %in% pfs"))))
+       data <- subset_store$data  %>% filter(eval(parse(text = paste(sep ="", parseFriendly(input$p.selected), " %in% pfs"))))
      
      return(data)
    })
@@ -480,6 +480,64 @@ server <- function(input, output) {
    })
    
    output$dr4pl.summary <- renderPrint({
+     init.parm <- "NULL"
+     if(input$use.init.param){
+       if(!any(c(is.na(as.numeric(input$init.upperBound)),
+                 is.na(as.numeric(input$init.IC50)),
+                 is.na(as.numeric(input$init.slope)),
+                 is.na(as.numeric(input$init.lowerBound))))){
+         init.parm <- paste(sep = "", "c(",
+                            input$init.upperBound,", ",
+                            input$init.IC50,", ",
+                            input$init.slope,", ",
+                            input$init.lowerBound,")")
+       } 
+       
+     } 
+     upperl.parm <- "NULL"
+     if(input$use.upper.lim){
+       if(!any(c(is.na(as.numeric(input$ubul)),
+                 is.na(as.numeric(input$icul)),
+                 is.na(as.numeric(input$slul)),
+                 is.na(as.numeric(input$lbul))))){
+         upperl.parm <- paste(sep = "","c(",
+                              input$ubul,", ",
+                              input$icul,", ",
+                              input$slul,", ",
+                              input$lbul,")")
+       } 
+       
+     } 
+     lowerl.parm <- "NULL"
+     if(input$use.lower.lim){
+       if(!any(c(is.na(as.numeric(input$ubll)),
+                 is.na(as.numeric(input$icll)),
+                 is.na(as.numeric(input$slll)),
+                 is.na(as.numeric(input$lbll))))){
+         lowerl.parm <- paste(sep = "","c(",
+                              input$ubll,", ",
+                              input$icll,", ",
+                              input$slll,", ",
+                              input$lbll,")")
+       } 
+       
+     } 
+     call <- paste(sep = "",
+                   "dr4pl.formula(formula = ",
+                   parseFriendly(input$dr4pl.Response),
+                   "~",
+                   parseFriendly(input$dr4pl.Dose),
+                   ", data = data, \n init.parm = ",
+                   init.parm,
+                   ", trend = \"", input$dr4pl.trend,
+                   "\", \n method.init = \"", input$dr4pl.method.init,
+                   "\", method.robust = \"", input$dr4pl.method.robust,
+                   "\",\n method.optim = \"", input$dr4pl.method.optim,
+                   "\", use.Hessian = ", input$dr4pl.use.Hessian,
+                   ", \n upperl = ", upperl.parm, ", lowerl = ", lowerl.parm, ")")
+     cat("Call\n")
+     cat(call)
+     cat("\n")
      stuff <- list(summary(dr4pl_reactive())$coefficients, dr4pl_reactive()$sample.size ,dr4pl_reactive()$message.diagnosis)
      names(stuff) <- c("Coefficients","Sample Size", "Message Diagnosis")
      stuff
