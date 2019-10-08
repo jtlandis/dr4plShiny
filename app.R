@@ -204,7 +204,9 @@ ui <- fluidPage(
                                                    uiOutput(outputId = "plot.y.text")),
                                             column(12,
                                                    checkboxInput(inputId = "ind.outlier", "Report Outliers"),
-                                                   checkboxInput(inputId = "inc.curve", "Show Curve", value = TRUE)),
+                                                   checkboxInput(inputId = "inc.curve", "Show Curve", value = TRUE),
+                                                   numericInput("width", "Plot Width (in)", value = 8),
+                                                   numericInput("height", "Plot Height (in)", value = 6)),
                                             column(12,
                                                    checkboxInput("IC50_include", "Include IC50", value = TRUE),
                                                    numericInput(inputId = "IC50_x", "IC50 x-axis", value = 100),
@@ -212,9 +214,8 @@ ui <- fluidPage(
                                                    numericInput("text.size",label = "Label Size", value = 8)),
                                             column(12,
                                                    uiOutput(outputId = "dl.filename.opt"),
-                                                   downloadButton(outputId = "get.dr4pl.plot"),
-                                                   numericInput("width", "Plot Width (in)", value = 8),
-                                                   numericInput("height", "Plot Height (in)", value = 6)))),
+                                                   downloadButton(outputId = "get.dr4pl.plot", label = "Plot Download"),
+                                                   downloadButton(outputId = "get.dr4pl.obj", label = "dr4pl Download")))),
                           
                           column(6,
                                  verbatimTextOutput(outputId = "dr4pl.summary")))
@@ -629,6 +630,13 @@ server <- function(input, output) {
                                                               width = input$width,
                                                               units = "in")
                                             })
+   output$get.dr4pl.obj <- downloadHandler(filename = function(){paste(sep = "",input$dl.filename,".Rdata")},
+                                           content = function(file){
+                                             DataInput <- inputData()
+                                             DataSubset <- subset_store$data
+                                             dr4plObj <- dr4pl_reactive()
+                                             save(file = file, DataInput, DataSubset, dr4plObj)
+                                           })
 }
 
 # Run the application 
