@@ -1,10 +1,5 @@
 #
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
+
 #
 
 library(shiny)
@@ -13,10 +8,12 @@ library(ggplot2)
 library(dplyr)
 library(magrittr)
 library(stringr)
-# Define UI for application that draws a histogram
-parseFriendly <- function(x) {
-  x <- ifelse(str_detect(string = x, pattern = " "), paste(sep = "", "`",x,"`"), x )
-}
+library(readxl)
+library(utils)
+# # Define UI for application that draws a histogram
+# parseFriendly <- function(x) {
+#   x <- ifelse(str_detect(string = x, pattern = " "), paste(sep = "", "`",x,"`"), x )
+# }
 
 ui <- fluidPage(
   tags$head(
@@ -231,7 +228,13 @@ ui <- fluidPage(
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
-   values <- reactiveValues(submit.csv =0, submit.xlsx = 0, submit.tsv = 0, submit.table = 0, submit.preview = 0)
+   values <- reactiveValues(submit.csv =0,
+                            submit.xlsx = 0,
+                            submit.tsv = 0,
+                            submit.table = 0,
+                            submit.preview = 0,
+                            dosename = NULL,
+                            responsename = NULL)
    
    observeEvent(input$submit.csv, {
      values$submit.csv <- 1
@@ -261,7 +264,7 @@ server <- function(input, output) {
      values$submit.table <- 1
      values$submit.preview <- 0
    })
-   subset_store <- reactiveValues()
+   subset_store <- reactiveValues(data = NULL)
    observeEvent(input$apply_sub, {
      #values$submit.preview <- 1
      subset_store$data <- pData()
@@ -277,6 +280,7 @@ server <- function(input, output) {
      o <- readxl::excel_sheets(path = input$file.xlsx$datapath)
      selectInput("sheet.xlsx", label = "Specify Sheet", choices = o, selected = o[1])
    })
+   
    inputData <- reactive({
      if(input$submit.csv==0&&input$submit.xlsx==0&&input$submit.tsv==0&&input$submit.table==0){
        return(NULL)
@@ -298,10 +302,13 @@ server <- function(input, output) {
                             dec = input$dec.table,
                             skip = input$skip.table)
        }
-       subset_store$data <- data
-       return(data)
+      if(is.null(subset_store$data)){
+        subset_store$data <- data
+      }
+      return(data)
     })
    })
+   
    dataName <- reactive({
      if(values$submit.csv){
        name <- input$file.csv$name
@@ -317,6 +324,7 @@ server <- function(input, output) {
      }
      name
    })
+   
    output$p.col.select <- renderUI({
      if(is.null(inputData())){
        return(NULL)
@@ -326,42 +334,84 @@ server <- function(input, output) {
      }
    })
    output$p.facto.filt <- renderUI({
+     req(input$p.selected)
+     p.select <- input$p.selected
      if(is.null(inputData())){
        return(NULL)
-     } else if(is.null(input$p.selected)){
+     } else if(is.null(p.select)){
        return(NULL)
      } else {   
-       uni.c <- eval(parse(text = paste(sep = "","unique(inputData()$",parseFriendly(input$p.selected),")")))
+       uni.c <- unique(inputData()[[p.select]])
+       #uni.c <- eval(parse(text = paste(sep = "","unique(inputData()$",parseFriendly(input$p.selected),")")))
        checkboxGroupInput(inputId = "p.facto.selected", "Select Factors to Include", choices = uni.c, selected = uni.c, inline = T)
      }
    })
+   
    pData <- reactive({
      if(is.null(inputData())){
        return(NULL)
      } 
+     input$apply_reset
+     input$apply_sub
        pfs <- input$p.facto.selected
-       data <- subset_store$data  %>% filter(eval(parse(text = paste(sep ="", parseFriendly(input$p.selected), " %in% pfs"))))
+       p.select <- input$p.selected
+       isolate({
+         data <- subset_store$data
+       })
+       data <- data[data[[p.select]] %in% pfs,]
+       #data <- subset_store$data  %>% filter(eval(parse(text = paste(sep ="", parseFriendly(input$p.selected), " %in% pfs"))))
      
      return(data)
    })
+   
    output$dat_preview <- renderDataTable({
+     
      pData()
    })
+   
    output$Dose.selection <- renderUI({
+     dosename <- isolate(values$dosename)
      if(is.null(inputData())){
        return(NULL)
      } else {
-       c.names <- colnames(subset_store$data)
-       selectInput("dr4pl.Dose", "Dose Column",choices = c.names)
+       c.names <- colnames(subset_store$data) #Check if dosename is NULL or does not exist in c.names
+       if(is.null(dosename)||!any(dosename %in% c.names)){
+         select <- grep(pattern = "dose", x = c.names, ignore.case = T)
+         if(any(select)){
+           select <- c.names[select[1]]
+         } else {
+           select <- c.names[1]
+         }
+       } else {
+         select <- dosename
+       }
+       selectInput("dr4pl.Dose", "Dose Column",choices = c.names, selected = select)
      }
    })
+   observe({
+     values$dosename <- input$dr4pl.Dose
+   })
    output$Response.selection <- renderUI({
+     responsename <- isolate(values$responsename)
      if(is.null(inputData())){
        return(NULL)
      } else {
        c.names <- colnames(subset_store$data)
-       selectInput("dr4pl.Response", "Response Column",choices = c.names)
+       if(is.null(responsename)||!any(responsename %in% c.names)){
+         select <- grep(pattern = "response", x = c.names, ignore.case = T)
+         if(any(select)){
+           select <- c.names[select[1]]
+         } else {
+           select <- c.names[1]
+         }
+       } else {
+         select <- responsename
+       }
+       selectInput("dr4pl.Response", "Response Column",choices = c.names, selected = select)
      }
+   })
+   observe({
+     values$responsename <- input$dr4pl.Response
    })
    output$dr4pl.submit.data <- renderDataTable({
      if(is.null(inputData())){
@@ -370,12 +420,19 @@ server <- function(input, output) {
      inputData()
    })
    dr4pl_reactive <- reactive({
+     req(input$dr4pl.Dose)
+     req(input$dr4pl.Response)
      data <- subset_store$data
-     if(is.null(input$dr4pl.Dose)|is.null(input$dr4pl.Response)){
+     if(is.null(input$dr4pl.Dose)|
+        is.null(input$dr4pl.Response)|
+        (!is.numeric(data[[input$dr4pl.Dose]]))|
+        (!is.numeric(data[[input$dr4pl.Response]]))){
        return(NULL)
      } else {
-       colnames(data)[colnames(data)%in%input$dr4pl.Dose] <- "Dose"
-       colnames(data)[colnames(data)%in%input$dr4pl.Response] <- "Response"
+       data$Dose <- data[[input$dr4pl.Dose]]
+       data$Response <- data[[input$dr4pl.Response]]
+       # colnames(data)[colnames(data)%in%input$dr4pl.Dose] <- "Dose"
+       # colnames(data)[colnames(data)%in%input$dr4pl.Response] <- "Response"
        init.parm <- NULL
        if(input$use.init.param){
          if(!any(c(is.na(as.numeric(input$init.upperBound)),
@@ -444,15 +501,15 @@ server <- function(input, output) {
    })
    dr4pl_plot <- reactive({
      if(is.null(dr4pl_reactive())){
-       return()
+       return(NULL)
      } else {
        if(input$inc.curve){
          type.curve <- "all"
        } else {
          type.curve <- "data"
        }
-       if(input$ind.outlier){
-         indices.outlier <- "report"
+       if(input$ind.outlier&&("dr4pl.robust"%in%names(dr4pl_reactive()))){
+         indices.outlier <- dr4pl_reactive()$dr4pl.robust$idx.outlier
        } else {
          indices.outlier <- NULL
        }
@@ -469,14 +526,24 @@ server <- function(input, output) {
        if(input$IC50_include){
          p <- p + geom_text(aes(label = paste("IC50:", round(dr4pl_reactive()$parameters[2],1)), x = input$IC50_x, y = input$IC50_y), size = input$text.size)
        }
-       p
+       return(p)
      }
    })
    output$IC50_yui <- renderUI({
-     numericInput(inputId = "IC50_y", "IC50 y-axis", value = (max(dr4pl_reactive()$data$Response)-min(dr4pl_reactive()$data$Response))/2)
+     if(is.null(dr4pl_reactive())){
+       val <- 10
+     } else {
+       val <- (max(dr4pl_reactive()$data$Response, na.rm = T)-min(dr4pl_reactive()$data$Response, na.rm = T))/2
+     }
+     numericInput(inputId = "IC50_y", "IC50 y-axis", value = val)
    })
    output$dr4pl.plot <- renderPlot({
-     dr4pl_plot()
+     if(is.null(dr4pl_plot())){
+       return()
+     }else {
+       suppressWarnings(dr4pl_plot())
+     }
+     
    })
    
    output$dr4pl.summary <- renderPrint({
@@ -524,9 +591,9 @@ server <- function(input, output) {
      } 
      call <- paste(sep = "",
                    "dr4pl.formula(formula = ",
-                   parseFriendly(input$dr4pl.Response),
+                   input$dr4pl.Response,
                    "~",
-                   parseFriendly(input$dr4pl.Dose),
+                   input$dr4pl.Dose,
                    ", data = data, \n init.parm = ",
                    init.parm,
                    ", trend = \"", input$dr4pl.trend,
@@ -551,11 +618,16 @@ server <- function(input, output) {
    })
    output$get.dr4pl.plot <- downloadHandler(filename = function() {paste(sep = "",input$dl.filename,".png")},
                                             content = function(file) {
-                                              device <- function(..., width, height) {
-                                                grDevices::png(..., width = input$width, height = input$height,
-                                                               res = 300, units = "in")
-                                              }
-                                              ggplot2::ggsave(file , plot = dr4pl_plot(), device = device)
+                                              # device <- function(..., width, height) {
+                                              #   grDevices::png(..., width = input$width, height = input$height,
+                                              #                  res = 300, units = "in")
+                                              # }
+                                              ggplot2::ggsave(file , plot = dr4pl_plot(),
+                                                              device = "png",
+                                                              dpi = 500,
+                                                              height = input$height,
+                                                              width = input$width,
+                                                              units = "in")
                                             })
 }
 
